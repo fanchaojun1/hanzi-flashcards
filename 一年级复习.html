@@ -180,6 +180,12 @@ document.getElementById('hanzi').onclick=()=>speak(deck()[idx].c);
 let order=[],qi=0,correct=0,seed=1;
 function rnd(){ seed=(seed*9301+49297)%233280; return seed/233280; }
 function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(rnd()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+let actx=null;
+function errSound(){ try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)(); if(actx.state==='suspended')actx.resume();
+  const o=actx.createOscillator(),g=actx.createGain(); o.type='square'; o.frequency.setValueAtTime(180,actx.currentTime);
+  o.frequency.exponentialRampToValueAtTime(90,actx.currentTime+.2); g.gain.setValueAtTime(.18,actx.currentTime);
+  g.gain.exponentialRampToValueAtTime(.001,actx.currentTime+.25); o.connect(g); g.connect(actx.destination); o.start(); o.stop(actx.currentTime+.26);
+}catch(e){} }
 function startTest(){
   seed=(idx+1)*(cls+7)+deck().length;
   order=shuffle(deck().map((_,i)=>i)); qi=0; correct=0;
@@ -187,6 +193,7 @@ function startTest(){
 }
 function showQ(){
   if(qi>=order.length){ finish(); return; }
+  document.getElementById('tprompt').textContent='读拼音，选对应的字';
   const q=deck()[order[qi]];
   document.getElementById('score').textContent='第'+(qi+1)+'/'+order.length+'题　得分 '+correct;
   document.getElementById('qpinyin').textContent=q.p;
@@ -194,12 +201,16 @@ function showQ(){
   const pool=deck().map((c,i)=>i).filter(i=>i!==order[qi]); shuffle(pool);
   const choices=shuffle([order[qi],pool[0],pool[1],pool[2]].filter(x=>x!==undefined));
   const box=document.getElementById('opts'); box.innerHTML='';
+  let wrongThisQ=false;
   choices.forEach(i=>{ const b=document.createElement('button'); b.textContent=deck()[i].c;
     b.onclick=()=>{
-      if(i===order[qi]){ b.className='right'; correct++; }
-      else{ b.className='wrong'; [...box.children].forEach(x=>{ if(x.textContent===q.c)x.className='right'; }); }
-      [...box.children].forEach(x=>x.disabled=true); speak(q.c);
-      setTimeout(()=>{ qi++; showQ(); },800);
+      if(i===order[qi]){
+        b.className='right'; if(!wrongThisQ) correct++; speak(q.c);
+        setTimeout(()=>{ qi++; showQ(); },700);
+      } else {
+        b.className='wrong'; b.disabled=true; wrongThisQ=true; errSound();
+        document.getElementById('tprompt').textContent='再试一次 🔄';
+      }
     }; box.appendChild(b);
   });
 }
