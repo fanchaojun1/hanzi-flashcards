@@ -128,9 +128,18 @@ let unlocked=false;
 function unlock(){ if(unlocked)return; unlocked=true; try{const u=new SpeechSynthesisUtterance(' ');u.volume=0;speechSynthesis.speak(u);}catch(e){} }
 document.addEventListener('touchstart',unlock); document.addEventListener('click',unlock);
 let zhVoice=null;
-function pickVoice(){ const vs=speechSynthesis.getVoices(); zhVoice=vs.find(v=>/zh|Chinese|中文/i.test(v.lang+v.name))||null; }
+function pickVoice(){
+  const vs=speechSynthesis.getVoices();
+  const zh=vs.filter(v=>/zh|Chinese|中文/i.test(v.lang+'|'+v.name));
+  const score=v=>{ let s=0;
+    if(/zh[-_]CN|zh_Hans|Chinese \(China|Mandarin/i.test(v.lang+v.name)) s+=4;
+    if(/premium|enhanced|siri/i.test(v.name)) s+=3;
+    if(/Ting-?Ting|Mei-?Jia|Yu-?shu|Li-?mu|Han/i.test(v.name)) s+=1;
+    if(v.localService) s+=1; return s; };
+  zhVoice = zh.sort((a,b)=>score(b)-score(a))[0]||null;
+}
 pickVoice(); if(typeof speechSynthesis!=='undefined') speechSynthesis.onvoiceschanged=pickVoice;
-function speak(t,rate){ try{ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(t); u.lang='zh-CN'; u.rate=rate||.8; if(zhVoice)u.voice=zhVoice; speechSynthesis.speak(u);}catch(e){} }
+function speak(t,rate){ try{ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(t); u.lang='zh-CN'; u.rate=rate||.7; if(zhVoice)u.voice=zhVoice; speechSynthesis.speak(u);}catch(e){} }
 
 // ---- sidebar ----
 const side=document.getElementById('side');

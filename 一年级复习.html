@@ -52,6 +52,9 @@
   #keText .kc{ cursor:pointer; padding:0 1px; border-radius:4px; }
   #keText .kc:active{ background:#ffe08a; }
   #keText .title{ display:block; font-weight:700; color:#c0392b; font-size:30px; margin-bottom:6px; }
+  #keText .tianlai{ margin-top:18px; padding-top:14px; border-top:2px dashed #d9c89a; background:#fbf6e8;
+    border-radius:10px; padding:12px; font-size:21px; line-height:1.9; color:#5b4a2a; text-align:left; }
+  #keText .tl-head{ font-weight:700; color:#b8860b; margin-bottom:6px; cursor:pointer; }
   .keBtns{ display:flex; gap:10px; }
   .keBtns button{ flex:1; font-size:18px; padding:14px; border:none; border-radius:12px; color:#fff; cursor:pointer; }
   #read{ background:#27ae60; } #stop{ background:#e74c3c; }
@@ -126,9 +129,18 @@ let unlocked=false;
 function unlock(){ if(unlocked)return; unlocked=true; try{const u=new SpeechSynthesisUtterance(' ');u.volume=0;speechSynthesis.speak(u);}catch(e){} }
 document.addEventListener('touchstart',unlock); document.addEventListener('click',unlock);
 let zhVoice=null;
-function pickVoice(){ const vs=speechSynthesis.getVoices(); zhVoice=vs.find(v=>/zh|Chinese|中文/i.test(v.lang+v.name))||null; }
+function pickVoice(){
+  const vs=speechSynthesis.getVoices();
+  const zh=vs.filter(v=>/zh|Chinese|中文/i.test(v.lang+'|'+v.name));
+  const score=v=>{ let s=0;
+    if(/zh[-_]CN|zh_Hans|Chinese \(China|Mandarin/i.test(v.lang+v.name)) s+=4;   // mainland Mandarin
+    if(/premium|enhanced|siri/i.test(v.name)) s+=3;                              // higher-quality voice
+    if(/Ting-?Ting|Mei-?Jia|Yu-?shu|Li-?mu|Han/i.test(v.name)) s+=1;
+    if(v.localService) s+=1; return s; };
+  zhVoice = zh.sort((a,b)=>score(b)-score(a))[0]||null;
+}
 pickVoice(); if(typeof speechSynthesis!=='undefined') speechSynthesis.onvoiceschanged=pickVoice;
-function speak(t,rate){ try{ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(t); u.lang='zh-CN'; u.rate=rate||.8; if(zhVoice)u.voice=zhVoice; speechSynthesis.speak(u);}catch(e){} }
+function speak(t,rate){ try{ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(t); u.lang='zh-CN'; u.rate=rate||.7; if(zhVoice)u.voice=zhVoice; speechSynthesis.speak(u);}catch(e){} }
 
 const side=document.getElementById('side');
 for(let i=1;i<=N;i++){ const b=document.createElement('button'); b.textContent='第'+i+'课'; b.dataset.cls=i; b.onclick=()=>{cls=i; resetSeq(); syncSide(); render();}; side.appendChild(b); }
@@ -227,27 +239,42 @@ document.getElementById('backToCards').onclick=()=>{ testV.classList.add('hidden
 
 // 课文 reader: render each character as a tap-to-pronounce span
 const CHAPTERS = DATA.chapters || {};
+const READ_RATE = .5;        // slow read-aloud for the whole chapter
+const TAP_RATE  = .7;        // single-character tap
 const keText=document.getElementById('keText');
+let curPoem='';
+function fillChars(line, parent){
+  for(const ch of line){
+    if(/[一-鿿]/.test(ch)){
+      const s=document.createElement('span'); s.className='kc'; s.textContent=ch;
+      s.onclick=()=>speak(ch,TAP_RATE); parent.appendChild(s);
+    } else { parent.appendChild(document.createTextNode(ch)); }
+  }
+}
 function renderKe(){
   const txt=CHAPTERS[cls]||'';
-  keText.innerHTML='';
+  keText.innerHTML=''; curPoem='';
   if(!txt){ keText.textContent='（暂无课文）'; return; }
-  const lines=txt.split('\n');
-  lines.forEach((line,li)=>{
-    // first line = title
+  const parts=txt.split('【天籁之音】');
+  curPoem=parts[0].replace(/\n+$/,'');
+  const tianlai=(parts[1]||'').trim();
+  // poem: first line is the title
+  curPoem.split('\n').forEach((line,li)=>{
     const wrap=(li===0)? Object.assign(document.createElement('span'),{className:'title'}) : keText;
-    for(const ch of line){
-      if(/[一-鿿]/.test(ch)){
-        const s=document.createElement('span'); s.className='kc'; s.textContent=ch;
-        s.onclick=()=>speak(ch);
-        wrap.appendChild(s);
-      } else { wrap.appendChild(document.createTextNode(ch)); }
-    }
+    fillChars(line, wrap);
     if(li===0) keText.appendChild(wrap);
-    if(li<lines.length-1) keText.appendChild(document.createTextNode('\n'));
+    keText.appendChild(document.createTextNode('\n'));
   });
+  // 天籁之音 in its own section
+  if(tianlai){
+    const sec=document.createElement('div'); sec.className='tianlai';
+    const hd=document.createElement('div'); hd.className='tl-head'; hd.textContent='🎵 天籁之音 ▶';
+    hd.onclick=()=>speak(tianlai, READ_RATE);
+    const body=document.createElement('div'); fillChars(tianlai, body);
+    sec.appendChild(hd); sec.appendChild(body); keText.appendChild(sec);
+  }
 }
-document.getElementById('read').onclick=()=>{ const t=CHAPTERS[cls]; if(t) speak(t,.7); };
+document.getElementById('read').onclick=()=>{ if(curPoem) speak(curPoem, READ_RATE); };
 document.getElementById('stop').onclick=()=>{ try{ speechSynthesis.cancel(); }catch(e){} };
 
 syncSide(); render();
