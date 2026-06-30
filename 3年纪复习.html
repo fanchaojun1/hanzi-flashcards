@@ -33,6 +33,7 @@
   .nav{ display:flex; gap:10px; padding:10px 14px 6px; flex:none; }
   .nav button{ flex:1; font-size:20px; padding:14px; border:none; border-radius:12px; background:#2c3e50; color:#fff; cursor:pointer; }
   .nav button:active{ opacity:.7; }
+  .nav button.on{ background:#e67e22; }
   .test{ flex:none; display:block; width:calc(100% - 28px); margin:0 14px 16px; font-size:20px;
     padding:14px; border:none; border-radius:12px; background:#27ae60; color:#fff; cursor:pointer; }
 
@@ -85,6 +86,7 @@
       </div></div>
       <div class="nav">
         <button id="prev">&#8592;</button>
+        <button id="shuffle" title="打乱顺序">&#128256;</button>
         <button id="next">&#8594;</button>
       </div>
       <button class="test" id="startTest">测验</button>
@@ -118,6 +120,8 @@
 const DATA = {"zika": [{"cls": 1, "cards": [{"c": "学堂", "p": "xué táng", "hi": 1}, {"c": "太阳晒", "p": "tài yáng shài", "hi": 2}, {"c": "风雨狂", "p": "fēng yǔ kuáng", "hi": 2}, {"c": "骂我", "p": "mà wǒ", "hi": 0}, {"c": "很懒", "p": "hěn lǎn", "hi": 1}, {"c": "无颜", "p": "wú yán", "hi": 0}, {"c": "爹娘", "p": "diē niáng", "hi": 0}, {"c": "墙上", "p": "qiáng shàng", "hi": 0}, {"c": "闹钟", "p": "nào zhōng", "hi": 0}, {"c": "迟到", "p": "chí dào", "hi": 0}]}, {"cls": 2, "cards": [{"c": "举手", "p": "jǔ shǒu", "hi": 0}, {"c": "笔直", "p": "bǐ zhí", "hi": 0}, {"c": "难道", "p": "nán dào", "hi": 0}, {"c": "一道题", "p": "yī dào tí", "hi": 2}, {"c": "不慌不忙", "p": "bù huāng bù máng", "hi": 1}, {"c": "表扬", "p": "biǎo yáng", "hi": 1}, {"c": "念书", "p": "niàn shū", "hi": 0}, {"c": "书桌", "p": "shū zhuō", "hi": 1}, {"c": "捧起来", "p": "pěng qǐ lái", "hi": 0}, {"c": "目不转睛", "p": "mù bù zhuǎn jīng", "hi": 0}]}, {"cls": 3, "cards": [{"c": "年级", "p": "nián jí", "hi": 1}, {"c": "背带裤", "p": "bēi dài kù", "hi": 2}, {"c": "班上", "p": "bān shàng", "hi": 0}, {"c": "个子矮", "p": "gè zi ǎi", "hi": 2}, {"c": "长颈鹿", "p": "cháng jǐng lù", "hi": 2}, {"c": "幸好", "p": "xìng hǎo", "hi": 0}, {"c": "哎呀", "p": "āi yā", "hi": 0}, {"c": "昨天", "p": "zuó tiān", "hi": 0}, {"c": "卷着", "p": "juǎn zhe", "hi": 0}, {"c": "专心", "p": "zhuān xīn", "hi": 0}]}, {"cls": 4, "cards": [{"c": "想不通", "p": "xiǎng bù tōng", "hi": 2}, {"c": "纳闷", "p": "nà mèn", "hi": 1}, {"c": "操场", "p": "cāo chǎng", "hi": 0}, {"c": "胖腿", "p": "pàng tuǐ", "hi": 0}, {"c": "蔬菜", "p": "shū cài", "hi": 0}, {"c": "邻座", "p": "lín zuò", "hi": 0}, {"c": "肉丸汤", "p": "ròu wán tāng", "hi": 0}, {"c": "别抢", "p": "bié qiǎng", "hi": 1}, {"c": "肉汤", "p": "ròu tāng", "hi": 1}, {"c": "赶紧", "p": "gǎn jǐn", "hi": 1}]}, {"cls": 5, "cards": [{"c": "笑眯眯", "p": "xiào mī mī", "hi": 1}, {"c": "有趣", "p": "yǒu qù", "hi": 1}, {"c": "写字", "p": "xiě zì", "hi": 0}, {"c": "两行", "p": "liǎng xíng", "hi": 1}, {"c": "圈儿", "p": "quān er", "hi": 0}, {"c": "冒汗", "p": "mào hàn", "hi": 0}, {"c": "纸上", "p": "zhǐ shàng", "hi": 0}, {"c": "交给", "p": "jiāo gěi", "hi": 0}, {"c": "一团", "p": "yī tuán", "hi": 1}, {"c": "胡乱", "p": "hú luàn", "hi": 1}]}, {"cls": 6, "cards": [{"c": "学习", "p": "xué xí", "hi": 1}, {"c": "消失", "p": "xiāo shī", "hi": 0}, {"c": "汉字", "p": "hàn zì", "hi": 0}, {"c": "每天", "p": "měi tiān", "hi": 0}, {"c": "排队", "p": "pái duì", "hi": 1}, {"c": "突然", "p": "tū rán", "hi": 0}, {"c": "叹气", "p": "tàn qì", "hi": 0}, {"c": "眉毛", "p": "méi máo", "hi": 0}, {"c": "靠着", "p": "kào zhe", "hi": 0}, {"c": "危险", "p": "wēi xiǎn", "hi": 0}]}, {"cls": 7, "cards": [{"c": "休息", "p": "xiū xī", "hi": 1}, {"c": "休假", "p": "xiū jià", "hi": 1}, {"c": "蹦下", "p": "bèng xià", "hi": 0}, {"c": "逃走", "p": "táo zǒu", "hi": 0}, {"c": "眼泪", "p": "yǎn lèi", "hi": 1}, {"c": "哭着", "p": "kū zhe", "hi": 0}, {"c": "一句话", "p": "yī jù huà", "hi": 1}, {"c": "辛苦", "p": "xīn kǔ", "hi": 1}, {"c": "部分", "p": "bù fèn", "hi": 0}, {"c": "组成", "p": "zǔ chéng", "hi": 0}]}, {"cls": 8, "cards": [{"c": "金银", "p": "jīn yín", "hi": 1}, {"c": "堆成", "p": "duī chéng", "hi": 0}, {"c": "识文断字", "p": "shí wén duàn zì", "hi": 2}, {"c": "便请来", "p": "biàn qǐng lái", "hi": 0}, {"c": "少爷", "p": "shào yé", "hi": 0}, {"c": "握笔", "p": "wò bǐ", "hi": 0}, {"c": "挥笔", "p": "huī bǐ", "hi": 0}, {"c": "加上", "p": "jiā shàng", "hi": 0}, {"c": "兴高采烈", "p": "xìng gāo cǎi liè", "hi": 3}, {"c": "一笔一划", "p": "yī bǐ yī huà", "hi": 3}]}, {"cls": 9, "cards": [{"c": "早晨", "p": "zǎo chén", "hi": 1}, {"c": "差得远", "p": "chà de yuǎn", "hi": 0}, {"c": "活泼", "p": "huó pō", "hi": 1}, {"c": "粗心", "p": "cū xīn", "hi": 0}, {"c": "一篇", "p": "yī piān", "hi": 1}, {"c": "扫雷", "p": "sǎo léi", "hi": 1}, {"c": "星期", "p": "xīng qī", "hi": 1}, {"c": "白茫茫", "p": "bái máng máng", "hi": 1}, {"c": "积满", "p": "jī mǎn", "hi": 0}, {"c": "厚厚的", "p": "hòu hòu de", "hi": 0}]}, {"cls": 10, "cards": [{"c": "一层", "p": "yī céng", "hi": 1}, {"c": "兴奋", "p": "xīng fèn", "hi": 1}, {"c": "踩着", "p": "cǎi zhe", "hi": 0}, {"c": "使劲", "p": "shǐ jìn", "hi": 0}, {"c": "打仗", "p": "dǎ zhàng", "hi": 1}, {"c": "热火朝天", "p": "rè huǒ cháo tiān", "hi": 2}, {"c": "哆嗦", "p": "duō suo", "hi": 0}, {"c": "颜色", "p": "yán sè", "hi": 0}, {"c": "屁股", "p": "pì gǔ", "hi": 0}, {"c": "击中", "p": "jī zhòng", "hi": 0}]}, {"cls": 11, "cards": [{"c": "笑疯了", "p": "xiào fēng le", "hi": 1}, {"c": "翻开", "p": "fān kāi", "hi": 0}, {"c": "小命", "p": "xiǎo mìng", "hi": 1}, {"c": "不保", "p": "bù bǎo", "hi": 1}, {"c": "医生", "p": "yī shēng", "hi": 0}, {"c": "晴天", "p": "qíng tiān", "hi": 0}, {"c": "头痛", "p": "tóu tòng", "hi": 1}, {"c": "不停", "p": "bù tíng", "hi": 1}, {"c": "摸了摸", "p": "mō le mō", "hi": 0}, {"c": "发烧", "p": "fā shāo", "hi": 1}]}, {"cls": 12, "cards": [{"c": "叔叔", "p": "shū shū", "hi": 0}, {"c": "冰凉", "p": "bīng liáng", "hi": 0}, {"c": "按了按", "p": "àn le àn", "hi": 0}, {"c": "护士", "p": "hù shì", "hi": 0}, {"c": "阿姨", "p": "ā yí", "hi": 0}, {"c": "嗓子", "p": "sǎng zi", "hi": 0}, {"c": "检查", "p": "jiǎn chá", "hi": 0}, {"c": "打针", "p": "dǎ zhēn", "hi": 1}, {"c": "勇敢", "p": "yǒng gǎn", "hi": 0}, {"c": "生病", "p": "shēng bìng", "hi": 1}]}], "eka": [{"cls": 1, "cards": [{"c": "我", "p": "wǒ"}, {"c": "上", "p": "shàng"}, {"c": "学", "p": "xué"}, {"c": "啦", "p": "la"}, {"c": "读", "p": "dú"}, {"c": "书", "p": "shū"}, {"c": "小", "p": "xiǎo"}, {"c": "儿", "p": "ér"}, {"c": "背", "p": "bèi"}, {"c": "着", "p": "zhe"}, {"c": "那", "p": "nà"}, {"c": "包", "p": "bāo"}]}, {"cls": 2, "cards": [{"c": "不", "p": "bù"}, {"c": "怕", "p": "pà"}, {"c": "太", "p": "tài"}, {"c": "阳", "p": "yáng"}, {"c": "也", "p": "yě"}, {"c": "风", "p": "fēng"}, {"c": "雨", "p": "yǔ"}, {"c": "只", "p": "zhǐ"}, {"c": "先", "p": "xiān"}, {"c": "生", "p": "shēng"}, {"c": "哪", "p": "nǎ"}, {"c": "没", "p": "méi"}]}, {"cls": 3, "cards": [{"c": "有", "p": "yǒu"}, {"c": "问", "p": "wèn"}, {"c": "见", "p": "jiàn"}, {"c": "娘", "p": "niáng"}, {"c": "九", "p": "jiǔ"}, {"c": "月", "p": "yuè"}, {"c": "日", "p": "rì"}, {"c": "前", "p": "qián"}, {"c": "夜", "p": "yè"}, {"c": "挂", "p": "guà"}, {"c": "的", "p": "de"}, {"c": "新", "p": "xīn"}]}, {"cls": 4, "cards": [{"c": "悄", "p": "qiāo"}, {"c": "对", "p": "duì"}, {"c": "床", "p": "chuáng"}, {"c": "头", "p": "tóu"}, {"c": "钟", "p": "zhōng"}, {"c": "说", "p": "shuō"}, {"c": "别", "p": "bié"}, {"c": "忘", "p": "wàng"}, {"c": "了", "p": "le"}, {"c": "明", "p": "míng"}, {"c": "早", "p": "zǎo"}, {"c": "叫", "p": "jiào"}]}, {"cls": 5, "cards": [{"c": "第", "p": "dì"}, {"c": "天", "p": "tiān"}, {"c": "能", "p": "néng"}, {"c": "到", "p": "dào"}, {"c": "要", "p": "yào"}, {"c": "个", "p": "gè"}, {"c": "走", "p": "zǒu"}, {"c": "进", "p": "jìn"}, {"c": "校", "p": "xiào"}, {"c": "手", "p": "shǒu"}, {"c": "得", "p": "dé"}, {"c": "直", "p": "zhí"}]}, {"cls": 6, "cards": [{"c": "道", "p": "dào"}, {"c": "人", "p": "rén"}, {"c": "就", "p": "jiù"}, {"c": "看", "p": "kàn"}, {"c": "这", "p": "zhè"}, {"c": "知", "p": "zhī"}, {"c": "该", "p": "gāi"}, {"c": "怎", "p": "zěn"}, {"c": "么", "p": "me"}, {"c": "做", "p": "zuò"}, {"c": "老", "p": "lǎo"}, {"c": "师", "p": "shī"}]}, {"cls": 7, "cards": [{"c": "快", "p": "kuài"}, {"c": "去", "p": "qù"}, {"c": "定", "p": "dìng"}, {"c": "忙", "p": "máng"}, {"c": "回", "p": "huí"}, {"c": "答", "p": "dá"}, {"c": "会", "p": "huì"}, {"c": "让", "p": "ràng"}, {"c": "你", "p": "nǐ"}, {"c": "表", "p": "biǎo"}, {"c": "自", "p": "zì"}, {"c": "己", "p": "jǐ"}]}, {"cls": 8, "cards": [{"c": "多", "p": "duō"}, {"c": "好", "p": "hǎo"}, {"c": "认", "p": "rèn"}, {"c": "里", "p": "lǐ"}, {"c": "字", "p": "zì"}, {"c": "用", "p": "yòng"}, {"c": "打", "p": "dǎ"}, {"c": "妈", "p": "mā"}, {"c": "奶", "p": "nǎi"}, {"c": "讲", "p": "jiǎng"}, {"c": "故", "p": "gù"}, {"c": "事", "p": "shì"}]}, {"cls": 9, "cards": [{"c": "给", "p": "gěi"}, {"c": "听", "p": "tīng"}, {"c": "吗", "p": "ma"}, {"c": "更", "p": "gèng"}, {"c": "姐", "p": "jiě"}, {"c": "拉", "p": "lā"}, {"c": "放", "p": "fàng"}, {"c": "再", "p": "zài"}, {"c": "起", "p": "qǐ"}, {"c": "来", "p": "lái"}, {"c": "睛", "p": "jīng"}, {"c": "地", "p": "dì"}]}, {"cls": 10, "cards": [{"c": "象", "p": "xiàng"}, {"c": "他", "p": "tā"}, {"c": "几", "p": "jǐ"}, {"c": "年", "p": "nián"}, {"c": "下", "p": "xià"}, {"c": "穿", "p": "chuān"}, {"c": "带", "p": "dài"}, {"c": "咚", "p": "dōng"}, {"c": "出", "p": "chū"}, {"c": "门", "p": "mén"}, {"c": "许", "p": "xǔ"}, {"c": "朋", "p": "péng"}]}, {"cls": 11, "cards": [{"c": "友", "p": "yǒu"}, {"c": "兔", "p": "tù"}, {"c": "子", "p": "zi"}, {"c": "坐", "p": "zuò"}, {"c": "在", "p": "zài"}, {"c": "排", "p": "pái"}, {"c": "长", "p": "zhǎng"}, {"c": "高", "p": "gāo"}, {"c": "后", "p": "hòu"}, {"c": "大", "p": "dà"}, {"c": "熊", "p": "xióng"}, {"c": "猫", "p": "māo"}]}, {"cls": 12, "cards": [{"c": "中", "p": "zhōng"}, {"c": "间", "p": "jiān"}, {"c": "是", "p": "shì"}, {"c": "教", "p": "jiào"}, {"c": "室", "p": "shì"}, {"c": "山", "p": "shān"}, {"c": "羊", "p": "yáng"}, {"c": "呀", "p": "ya"}, {"c": "急", "p": "jí"}, {"c": "刚", "p": "gāng"}, {"c": "弯", "p": "wān"}, {"c": "节", "p": "jié"}]}]};            // {zika:[{cls,cards}], eka:[...]}
 const N = DATA.zika.length;       // 12 classes
 let cls = 1, tab = 'eka', idx = 0;
+let seq = [], pos = 0, seqKey = '', shuffled = false;
+function resetSeq(){ seqKey=''; shuffled=false; }
 
 // ---- speech (iOS unlock) ----
 let unlocked=false;
@@ -130,12 +134,12 @@ function speak(t,rate){ try{ speechSynthesis.cancel(); const u=new SpeechSynthes
 
 // ---- sidebar ----
 const side=document.getElementById('side');
-for(let i=1;i<=N;i++){ const b=document.createElement('button'); b.textContent='第'+i+'课'; b.dataset.cls=i; b.onclick=()=>{cls=i; idx=0; syncSide(); render();}; side.appendChild(b); }
+for(let i=1;i<=N;i++){ const b=document.createElement('button'); b.textContent='第'+i+'课'; b.dataset.cls=i; b.onclick=()=>{cls=i; resetSeq(); syncSide(); render();}; side.appendChild(b); }
 function syncSide(){ [...side.children].forEach(b=>b.classList.toggle('on',+b.dataset.cls===cls)); }
 
 // ---- tabs ----
 const tabsEl=document.getElementById('tabs');
-[...tabsEl.children].forEach(b=>b.onclick=()=>{ tab=b.dataset.tab; idx=0; render(); });
+[...tabsEl.children].forEach(b=>b.onclick=()=>{ tab=b.dataset.tab; resetSeq(); render(); });
 function syncTabs(){ [...tabsEl.children].forEach(b=>b.classList.toggle('on',b.dataset.tab===tab)); }
 
 // ---- views ----
@@ -147,6 +151,8 @@ function render(){
   testV.classList.add('hidden');
   if(tab==='ke'){ deckV.classList.add('hidden'); keV.classList.remove('hidden'); renderKe(); return; }
   keV.classList.add('hidden'); deckV.classList.remove('hidden');
+  ensureSeq(); idx=seq[pos];
+  document.getElementById('shuffle').classList.toggle('on',shuffled);
   const c=deck()[idx];
   document.getElementById('pinyin').textContent=c.p;
   const h=document.getElementById('hanzi');
@@ -156,9 +162,10 @@ function render(){
     h.textContent=c.c;
   }
   fitHanzi();
-  document.getElementById('counter').textContent=(idx+1)+' / '+deck().length;
+  document.getElementById('counter').textContent=(pos+1)+' / '+seq.length+(shuffled?'　🔀':'');
   speak(c.c);
 }
+function ensureSeq(){ const k=tab+'|'+cls; if(k!==seqKey){ seqKey=k; seq=deck().map((_,i)=>i); pos=0; shuffled=false; } }
 // keep multi-char words on one line: shrink font until it fits the card width
 function fitHanzi(){
   const h=document.getElementById('hanzi'); if(!h.textContent) return;
@@ -170,8 +177,14 @@ function fitHanzi(){
   }
 }
 window.addEventListener('resize',()=>{ if(!deckV.classList.contains('hidden')) fitHanzi(); });
-document.getElementById('prev').onclick=()=>{ idx=(idx-1+deck().length)%deck().length; render(); };
-document.getElementById('next').onclick=()=>{ idx=(idx+1)%deck().length; render(); };
+document.getElementById('prev').onclick=()=>{ pos=(pos-1+seq.length)%seq.length; render(); };
+document.getElementById('next').onclick=()=>{ pos=(pos+1)%seq.length; render(); };
+document.getElementById('shuffle').onclick=()=>{
+  ensureSeq(); shuffled=!shuffled;
+  seq=deck().map((_,i)=>i);
+  if(shuffled){ seed=(Date.now()%233280)||7; shuffle(seq); }
+  pos=0; render();
+};
 document.getElementById('speak').onclick=()=>speak(deck()[idx].c);
 document.getElementById('hanzi').onclick=()=>speak(deck()[idx].c);
 
