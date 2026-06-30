@@ -140,7 +140,30 @@ function pickVoice(){
   zhVoice = zh.sort((a,b)=>score(b)-score(a))[0]||null;
 }
 pickVoice(); if(typeof speechSynthesis!=='undefined') speechSynthesis.onvoiceschanged=pickVoice;
-function speak(t,rate){ try{ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(t); u.lang='zh-CN'; u.rate=rate||.7; if(zhVoice)u.voice=zhVoice; speechSynthesis.speak(u);}catch(e){} }
+let readToken=0;
+function speak(t,rate){ try{ readToken++; speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(t); u.lang='zh-CN'; u.rate=rate||.7; if(zhVoice)u.voice=zhVoice; speechSynthesis.speak(u);}catch(e){} }
+// read a multi-line text with pauses after title / line breaks / punctuation
+function speakStory(text, rate){
+  const my=++readToken; speechSynthesis.cancel();
+  const LONG=/[。！？!?]/, SHORT=/[，、；：,;:]/;
+  const segs=[];
+  text.split('\n').forEach((line,li)=>{
+    let cur='';
+    for(const ch of line){ cur+=ch;
+      if(LONG.test(ch)){ segs.push({t:cur,p:520}); cur=''; }
+      else if(SHORT.test(ch)){ segs.push({t:cur,p:300}); cur=''; } }
+    if(cur.trim()) segs.push({t:cur,p:0});
+    if(segs.length) segs[segs.length-1].p=Math.max(segs[segs.length-1].p, li===0?700:450); // title / line-break pause
+  });
+  const list=segs.filter(s=>s.t.trim()); let i=0;
+  (function next(){
+    if(my!==readToken || i>=list.length) return;
+    const seg=list[i++]; const u=new SpeechSynthesisUtterance(seg.t.trim());
+    u.lang='zh-CN'; u.rate=rate||.5; if(zhVoice)u.voice=zhVoice;
+    u.onend=()=>{ if(my===readToken) setTimeout(next, seg.p); };
+    speechSynthesis.speak(u);
+  })();
+}
 
 const side=document.getElementById('side');
 for(let i=1;i<=N;i++){ const b=document.createElement('button'); b.textContent='第'+i+'课'; b.dataset.cls=i; b.onclick=()=>{cls=i; resetSeq(); syncSide(); render();}; side.appendChild(b); }
@@ -269,13 +292,13 @@ function renderKe(){
   if(tianlai){
     const sec=document.createElement('div'); sec.className='tianlai';
     const hd=document.createElement('div'); hd.className='tl-head'; hd.textContent='🎵 天籁之音 ▶';
-    hd.onclick=()=>speak(tianlai, READ_RATE);
+    hd.onclick=()=>speakStory(tianlai, READ_RATE);
     const body=document.createElement('div'); fillChars(tianlai, body);
     sec.appendChild(hd); sec.appendChild(body); keText.appendChild(sec);
   }
 }
-document.getElementById('read').onclick=()=>{ if(curPoem) speak(curPoem, READ_RATE); };
-document.getElementById('stop').onclick=()=>{ try{ speechSynthesis.cancel(); }catch(e){} };
+document.getElementById('read').onclick=()=>{ if(curPoem) speakStory(curPoem, READ_RATE); };
+document.getElementById('stop').onclick=()=>{ readToken++; try{ speechSynthesis.cancel(); }catch(e){} };
 
 syncSide(); render();
 </script>
