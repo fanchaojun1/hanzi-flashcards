@@ -14,6 +14,7 @@
   .row{ display:flex; align-items:flex-start; gap:12px; padding:10px 12px; border-bottom:1px solid #e0dbcd; background:#fff; }
   .row:nth-child(even){ background:#faf8f2; }
   .num{ flex:none; width:34px; text-align:right; color:#b0a98f; font-size:13px; padding-top:20px; }
+  .py{ flex:none; width:52px; text-align:center; color:#c0392b; font-size:16px; padding-top:22px; }
   .big{ flex:none; width:64px; height:64px; font-size:52px; line-height:64px; text-align:center; cursor:pointer;
     border:1px solid #e4ddc9; border-radius:10px; background:#fffdf6; }
   .steps{ flex:1; display:flex; flex-wrap:wrap; gap:5px; align-items:center; min-height:64px; }
@@ -47,6 +48,7 @@ const RAW=
 +'男最点肉菜来什名字告诉把成经常夏街冰床'
 +'帽觉糕买非它包跑想身哭许';
 const CHARS=[...new Set(RAW)];
+const PINYIN={"心": "xīn", "风": "fēng", "力": "lì", "手": "shǒu", "水": "shuǐ", "广": "guǎng", "升": "shēng", "足": "zú", "方": "fāng", "半": "bàn", "巴": "bā", "业": "yè", "本": "běn", "平": "píng", "书": "shū", "回": "huí", "自": "zì", "已": "yǐ", "东": "dōng", "西": "xī", "片": "piàn", "皮": "pí", "生": "shēng", "里": "lǐ", "果": "guǒ", "几": "jǐ", "用": "yòng", "鱼": "yú", "今": "jīn", "正": "zhèng", "雨": "yǔ", "两": "liǎng", "年": "nián", "左": "zuǒ", "右": "yòu", "万": "wàn", "冬": "dōng", "百": "bǎi", "齐": "qí", "春": "chūn", "说": "shuō", "话": "huà", "朋": "péng", "友": "yǒu", "瓜": "guā", "衣": "yī", "来": "lái", "高": "gāo", "少": "shǎo", "巾": "jīn", "牙": "yá", "丁": "dīng", "你": "nǐ", "们": "men", "红": "hóng", "花": "huā", "古": "gǔ", "声": "shēng", "多": "duō", "处": "chù", "知": "zhī", "忙": "máng", "认": "rèn", "真": "zhēn", "洗": "xǐ", "扫": "sǎo", "父": "fù", "母": "mǔ", "爸": "bà", "全": "quán", "关": "guān", "写": "xiě", "完": "wán", "家": "jiā", "看": "kàn", "着": "zhe", "画": "huà", "笑": "xiào", "兴": "xīng", "会": "huì", "女": "nǚ", "妈": "mā", "奶": "nǎi", "午": "wǔ", "合": "hé", "放": "fàng", "收": "shōu", "太": "tài", "气": "qì", "早": "zǎo", "去": "qù", "亮": "liàng", "和": "hé", "语": "yǔ", "千": "qiān", "李": "lǐ", "秀": "xiù", "香": "xiāng", "听": "tīng", "唱": "chàng", "连": "lián", "远": "yuǎn", "定": "dìng", "厂": "chǎng", "以": "yǐ", "后": "hòu", "更": "gèng", "总": "zǒng", "主": "zhǔ", "意": "yì", "先": "xiān", "干": "gàn", "赶": "gǎn", "起": "qǐ", "明": "míng", "净": "jìng", "同": "tóng", "工": "gōng", "专": "zhuān", "才": "cái", "级": "jí", "队": "duì", "前": "qián", "空": "kōng", "房": "fáng", "网": "wǎng", "诗": "shī", "林": "lín", "有": "yǒu", "棵": "kē", "树": "shù", "在": "zài", "玩": "wán", "被": "bèi", "站": "zhàn", "动": "dòng", "阳": "yáng", "光": "guāng", "是": "shì", "色": "sè", "吗": "ma", "地": "dì", "哪": "nǎ", "眼": "yǎn", "谁": "shuí", "没": "méi", "过": "guò", "我": "wǒ", "但": "dàn", "叶": "yè", "时": "shí", "候": "hòu", "海": "hǎi", "洋": "yáng", "球": "qiú", "只": "zhǐ", "相": "xiāng", "哥": "gē", "弟": "dì", "爱": "ài", "很": "hěn", "他": "tā", "吃": "chī", "得": "dé", "河": "hé", "样": "yàng", "活": "huó", "从": "cóng", "如": "rú", "发": "fā", "鲜": "xiān", "满": "mǎn", "怎": "zěn", "就": "jiù", "可": "kě", "该": "gāi", "对": "duì", "现": "xiàn", "要": "yào", "坏": "huài", "老": "lǎo", "师": "shī", "学": "xué", "校": "xiào", "这": "zhè", "背": "bèi", "向": "xiàng", "直": "zhí", "北": "běi", "极": "jí", "睛": "jīng", "都": "dōu", "闪": "shǎn", "带": "dài", "分": "fēn", "给": "gěi", "当": "dāng", "到": "dào", "爬": "pá", "星": "xīng", "打": "dǎ", "往": "wǎng", "讲": "jiǎng", "故": "gù", "像": "xiàng", "胡": "hú", "么": "me", "跟": "gēn", "叫": "jiào", "男": "nán", "最": "zuì", "点": "diǎn", "肉": "ròu", "菜": "cài", "什": "shén", "名": "míng", "字": "zì", "告": "gào", "诉": "sù", "把": "bǎ", "成": "chéng", "经": "jīng", "常": "cháng", "夏": "xià", "街": "jiē", "冰": "bīng", "床": "chuáng", "帽": "mào", "觉": "jué", "糕": "gāo", "买": "mǎi", "非": "fēi", "它": "tā", "包": "bāo", "跑": "pǎo", "想": "xiǎng", "身": "shēn", "哭": "kū", "许": "xǔ"};
 document.getElementById('cnt').textContent=CHARS.length+' 字';
 
 // speech (tap the big character to pronounce)
@@ -81,7 +83,7 @@ const io=new IntersectionObserver(es=>{
 const list=document.getElementById('list');
 CHARS.forEach((c,i)=>{
   const row=document.createElement('div'); row.className='row'; row.dataset.c=c;
-  row.innerHTML='<div class="num">'+(i+1)+'</div><div class="big">'+c+'</div><div class="steps">…</div>';
+  row.innerHTML='<div class="num">'+(i+1)+'</div><div class="py">'+(PINYIN[c]||'')+'</div><div class="big">'+c+'</div><div class="steps">…</div>';
   row.querySelector('.big').onclick=()=>speak(c);
   list.appendChild(row); io.observe(row);
 });
