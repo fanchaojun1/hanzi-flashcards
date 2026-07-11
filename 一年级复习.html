@@ -55,6 +55,8 @@
     background:#fff; min-height:0; text-align:center; }
   #keText .kc{ cursor:pointer; padding:0 1px; border-radius:4px; }
   #keText .kc:active{ background:#ffe08a; }
+  #keText .kc.kseg{ background:#fdf0c2; }
+  #keText .kc.khl{ background:#ffb347; }
   #keText .title{ display:block; font-weight:700; color:#c0392b; font-size:30px; margin-bottom:6px; }
   #keText .tianlai{ margin-top:18px; padding-top:14px; border-top:2px dashed #d9c89a; background:#fbf6e8;
     border-radius:10px; padding:12px; font-size:21px; line-height:1.9; color:#5b4a2a; text-align:left; }
@@ -152,32 +154,50 @@ function speak(t,rate){ try{ readToken++; speechSynthesis.cancel(); const u=new 
 // read a multi-line text with pauses after title / line breaks / punctuation
 // ---- resumable story player (segment-based; iOS pause()/resume() is unreliable) ----
 let storyList=[], storyIdx=0, storyRate=.5, paused=false;
+// karaoke highlight: map spoken-text char index -> its .kc span
+let hlSpans=[], hlMap=[];
+function setHl(text, spans){
+  hlSpans=spans||[]; hlMap=[]; let k=0;
+  for(let i=0;i<text.length;i++) hlMap[i]=/[一-鿿]/.test(text[i])?k++:-1;
+}
+function clearHl(){ document.querySelectorAll('#keText .kc.khl,#keText .kc.kseg').forEach(s=>s.classList.remove('khl','kseg')); }
+function hlRange(start,len,cls){ for(let i=start;i<start+len;i++){ const o=hlMap[i]; if(o>=0&&hlSpans[o]) hlSpans[o].classList.add(cls); } }
+function hlWord(start,len){
+  document.querySelectorAll('#keText .kc.khl').forEach(s=>s.classList.remove('khl'));
+  hlRange(start,len,'khl');
+  const o=hlMap[start]; if(o>=0&&hlSpans[o]) hlSpans[o].scrollIntoView({block:'nearest'});
+}
 function buildSegs(text){
   const LONG=/[。！？!?]/, SHORT=/[，、；：,;:]/;
-  const segs=[];
+  const segs=[]; let off=0;
   text.split('\n').forEach((line,li)=>{
-    let cur='';
+    let cur='', cs=off;
     for(const ch of line){ cur+=ch;
-      if(LONG.test(ch)){ segs.push({t:cur,p:520}); cur=''; }
-      else if(SHORT.test(ch)){ segs.push({t:cur,p:300}); cur=''; } }
-    if(cur.trim()) segs.push({t:cur,p:0});
+      if(LONG.test(ch)){ segs.push({t:cur,p:520,s:cs}); cs+=cur.length; cur=''; }
+      else if(SHORT.test(ch)){ segs.push({t:cur,p:300,s:cs}); cs+=cur.length; cur=''; } }
+    if(cur.trim()) segs.push({t:cur,p:0,s:cs});
     if(segs.length) segs[segs.length-1].p=Math.max(segs[segs.length-1].p, li===0?700:450);
+    off+=line.length+1;
   });
   return segs.filter(s=>s.t.trim());
 }
 function playStory(){
   const my=++readToken;
   (function next(){
-    if(my!==readToken || paused || storyIdx>=storyList.length){ if(storyIdx>=storyList.length) syncPause(); return; }
+    if(my!==readToken || paused || storyIdx>=storyList.length){ if(storyIdx>=storyList.length){ syncPause(); clearHl(); } return; }
     const seg=storyList[storyIdx];
     const u=new SpeechSynthesisUtterance(seg.t.trim());
+    const base=seg.s+(seg.t.length-seg.t.trimStart().length);
     u.lang='zh-CN'; u.rate=storyRate; if(zhVoice)u.voice=zhVoice;
+    // sentence highlight up front (fallback when no boundary events, e.g. some iOS voices)
+    u.onstart=()=>{ if(my!==readToken) return; clearHl(); hlRange(seg.s,seg.t.length,'kseg'); const o=hlMap[base]; if(o>=0&&hlSpans[o]) hlSpans[o].scrollIntoView({block:'nearest'}); };
+    u.onboundary=e=>{ if(my===readToken) hlWord(base+e.charIndex, e.charLength||1); };
     u.onend=()=>{ if(my===readToken && !paused){ storyIdx++; setTimeout(next, seg.p); } };
     speechSynthesis.speak(u);
   })();
 }
-function speakStory(text, rate){
-  storyList=buildSegs(text); storyIdx=0; storyRate=rate||.5; paused=false;
+function speakStory(text, rate, spans){
+  storyList=buildSegs(text); setHl(text, spans); storyIdx=0; storyRate=rate||.5; paused=false;
   readToken++; try{ speechSynthesis.cancel(); }catch(e){}
   syncPause(); playStory();
 }
@@ -314,18 +334,20 @@ const CHAPTERS = DATA.chapters || {};
 const READ_RATE = .5;        // slow read-aloud for the whole chapter
 const TAP_RATE  = .7;        // single-character tap
 const keText=document.getElementById('keText');
-let curPoem='';
+let curPoem='', poemSpans=[], tlSpans=[];
 function fillChars(line, parent){
+  const out=[];
   for(const ch of line){
     if(/[一-鿿]/.test(ch)){
       const s=document.createElement('span'); s.className='kc'; s.textContent=ch;
-      s.onclick=()=>speak(ch,TAP_RATE); parent.appendChild(s);
+      s.onclick=()=>speak(ch,TAP_RATE); parent.appendChild(s); out.push(s);
     } else { parent.appendChild(document.createTextNode(ch)); }
   }
+  return out;
 }
 function renderKe(){
   const txt=CHAPTERS[cls]||'';
-  keText.innerHTML=''; curPoem='';
+  keText.innerHTML=''; curPoem=''; poemSpans=[]; tlSpans=[];
   if(!txt){ keText.textContent='（暂无课文）'; return; }
   const parts=txt.split('【天籁之音】');
   curPoem=parts[0].replace(/\n+$/,'');
@@ -333,7 +355,7 @@ function renderKe(){
   // poem: first line is the title
   curPoem.split('\n').forEach((line,li)=>{
     const wrap=(li===0)? Object.assign(document.createElement('span'),{className:'title'}) : keText;
-    fillChars(line, wrap);
+    poemSpans.push(...fillChars(line, wrap));
     if(li===0) keText.appendChild(wrap);
     keText.appendChild(document.createTextNode('\n'));
   });
@@ -341,12 +363,12 @@ function renderKe(){
   if(tianlai){
     const sec=document.createElement('div'); sec.className='tianlai';
     const hd=document.createElement('div'); hd.className='tl-head'; hd.textContent='🎵 天籁之音 ▶';
-    hd.onclick=()=>speakStory(tianlai, READ_RATE);
-    const body=document.createElement('div'); fillChars(tianlai, body);
+    hd.onclick=()=>speakStory(tianlai, READ_RATE, tlSpans);
+    const body=document.createElement('div'); tlSpans=fillChars(tianlai, body);
     sec.appendChild(hd); sec.appendChild(body); keText.appendChild(sec);
   }
 }
-document.getElementById('read').onclick=()=>{ if(curPoem) speakStory(curPoem, READ_RATE); };
+document.getElementById('read').onclick=()=>{ if(curPoem) speakStory(curPoem, READ_RATE, poemSpans); };
 document.getElementById('stop').onclick=togglePause;
 
 // auto-pronounce toggle

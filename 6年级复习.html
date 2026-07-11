@@ -55,6 +55,8 @@
     background:#fff; min-height:0; text-align:left; }
   #keText .kc{ cursor:pointer; padding:0 1px; border-radius:4px; }
   #keText .kc:active{ background:#ffe08a; }
+  #keText .kc.kseg{ background:#fdf0c2; }
+  #keText .kc.khl{ background:#ffb347; }
   .keBtns{ display:flex; gap:10px; }
   .keBtns button{ flex:1; font-size:18px; padding:14px; border:none; border-radius:12px; color:#fff; cursor:pointer; }
   #read{ background:#27ae60; } #stop{ background:#e67e22; }
@@ -292,43 +294,63 @@ const READ_RATE=.55, TAP_RATE=.7;
 const keText=document.getElementById('keText');
 let curRead='';
 function fillChars(text, parent){
+  const out=[];
   for(const ch of text){
-    if(/[一-鿿]/.test(ch)){ const s=document.createElement('span'); s.className='kc'; s.textContent=ch; s.onclick=()=>speak(ch,TAP_RATE); parent.appendChild(s); }
+    if(/[一-鿿]/.test(ch)){ const s=document.createElement('span'); s.className='kc'; s.textContent=ch; s.onclick=()=>speak(ch,TAP_RATE); parent.appendChild(s); out.push(s); }
     else parent.appendChild(document.createTextNode(ch));
   }
+  return out;
+}
+// karaoke highlight: map spoken-text char index -> its .kc span
+let hlSpans=[], hlMap=[];
+function setHl(text, spans){
+  hlSpans=spans||[]; hlMap=[]; let k=0;
+  for(let i=0;i<text.length;i++) hlMap[i]=/[一-鿿]/.test(text[i])?k++:-1;
+}
+function clearHl(){ keText.querySelectorAll('.kc.khl,.kc.kseg').forEach(s=>s.classList.remove('khl','kseg')); }
+function hlRange(start,len,cls){ for(let i=start;i<start+len;i++){ const o=hlMap[i]; if(o>=0&&hlSpans[o]) hlSpans[o].classList.add(cls); } }
+function hlWord(start,len){
+  keText.querySelectorAll('.kc.khl').forEach(s=>s.classList.remove('khl'));
+  hlRange(start,len,'khl');
+  const o=hlMap[start]; if(o>=0&&hlSpans[o]) hlSpans[o].scrollIntoView({block:'nearest'});
 }
 function renderKe(){
   const txt=(tab==='after'?AFTER:KEWEN)[cls]||'（暂无内容）';
   curRead=txt; storyList=[]; storyIdx=0; paused=false;   // reset reader for new content
-  keText.innerHTML=''; fillChars(txt, keText); keText.scrollTop=0;
+  keText.innerHTML=''; keSpans=fillChars(txt, keText); keText.scrollTop=0;
   syncPause();
 }
 // resumable story player (segment-based; iOS pause()/resume() is unreliable)
-let storyList=[], storyIdx=0, storyRate=READ_RATE, paused=false;
+let storyList=[], storyIdx=0, storyRate=READ_RATE, paused=false, keSpans=[];
 function buildSegs(text){
-  const LONG=/[。！？!?]/, SHORT=/[，、；：,;:]/; const segs=[];
+  const LONG=/[。！？!?]/, SHORT=/[，、；：,;:]/; const segs=[]; let off=0;
   text.split('\n').forEach((line,li)=>{
-    let cur='';
+    let cur='', cs=off;
     for(const ch of line){ cur+=ch;
-      if(LONG.test(ch)){ segs.push({t:cur,p:480}); cur=''; }
-      else if(SHORT.test(ch)){ segs.push({t:cur,p:280}); cur=''; } }
-    if(cur.trim()) segs.push({t:cur,p:0});
+      if(LONG.test(ch)){ segs.push({t:cur,p:480,s:cs}); cs+=cur.length; cur=''; }
+      else if(SHORT.test(ch)){ segs.push({t:cur,p:280,s:cs}); cs+=cur.length; cur=''; } }
+    if(cur.trim()) segs.push({t:cur,p:0,s:cs});
     if(segs.length) segs[segs.length-1].p=Math.max(segs[segs.length-1].p, li===0?600:420);
+    off+=line.length+1;
   });
   return segs.filter(s=>s.t.trim());
 }
 function playStory(){
   const my=++readToken;
   (function next(){
-    if(my!==readToken || paused || storyIdx>=storyList.length){ if(storyIdx>=storyList.length) syncPause(); return; }
+    if(my!==readToken || paused || storyIdx>=storyList.length){ if(storyIdx>=storyList.length){ syncPause(); clearHl(); } return; }
     const seg=storyList[storyIdx];
     const u=new SpeechSynthesisUtterance(seg.t.trim());
+    const base=seg.s+(seg.t.length-seg.t.trimStart().length);
     u.lang='zh-CN'; u.rate=storyRate; if(zhVoice)u.voice=zhVoice;
+    // sentence highlight up front (fallback when no boundary events, e.g. some iOS voices)
+    u.onstart=()=>{ if(my!==readToken) return; clearHl(); hlRange(seg.s,seg.t.length,'kseg'); const o=hlMap[base]; if(o>=0&&hlSpans[o]) hlSpans[o].scrollIntoView({block:'nearest'}); };
+    u.onboundary=e=>{ if(my===readToken) hlWord(base+e.charIndex, e.charLength||1); };
     u.onend=()=>{ if(my===readToken && !paused){ storyIdx++; setTimeout(next, seg.p); } };
     speechSynthesis.speak(u);
   })();
 }
-function speakStory(text){ storyList=buildSegs(text); storyIdx=0; paused=false; readToken++; try{speechSynthesis.cancel();}catch(e){} syncPause(); playStory(); }
+function speakStory(text){ storyList=buildSegs(text); setHl(text, keSpans); storyIdx=0; paused=false; readToken++; try{speechSynthesis.cancel();}catch(e){} syncPause(); playStory(); }
 function togglePause(){
   if(!storyList.length || storyIdx>=storyList.length) return;
   if(paused){ paused=false; playStory(); }
