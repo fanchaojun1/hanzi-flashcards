@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>写字总表 · 笔顺</title>
+<style>
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body{ margin:0; font-family:-apple-system,"PingFang SC","Heiti SC",sans-serif; background:#f4f1ea; color:#222; }
+  header{ position:sticky; top:0; background:#2c3e50; color:#fff; padding:12px 16px; display:flex; align-items:center; gap:12px; z-index:5; }
+  header a{ color:#9fd6c9; text-decoration:none; font-size:15px; }
+  header h1{ font-size:19px; margin:0; font-weight:600; flex:1; }
+  header .cnt{ font-size:13px; color:#aab; }
+  .row{ display:flex; align-items:flex-start; gap:12px; padding:10px 12px; border-bottom:1px solid #e0dbcd; background:#fff; }
+  .row:nth-child(even){ background:#faf8f2; }
+  .num{ flex:none; width:34px; text-align:right; color:#b0a98f; font-size:13px; padding-top:20px; }
+  .big{ flex:none; width:64px; height:64px; font-size:52px; line-height:64px; text-align:center; cursor:pointer;
+    border:1px solid #e4ddc9; border-radius:10px; background:#fffdf6; }
+  .steps{ flex:1; display:flex; flex-wrap:wrap; gap:5px; align-items:center; min-height:64px; }
+  .steps svg{ width:44px; height:44px; background:#fff; border:1px solid #eee2c8; border-radius:6px; }
+  .steps svg path.done{ fill:#333; }
+  .steps svg path.cur{ fill:#c0392b; }
+  .miss{ color:#b77; font-size:14px; }
+</style>
+</head>
+<body>
+<header>
+  <a href="index.html">← 返回</a>
+  <h1>写字总表 · 笔顺</h1>
+  <span class="cnt" id="cnt"></span>
+</header>
+<div id="list"></div>
+
+<script>
+const RAW=
+ '心风力手水广升足方半巴业本平书回自已东'
++'西片皮生里果几用鱼今正雨两年左右万冬百'
++'齐春说话朋友瓜衣来高少巾牙丁你们红花古'
++'声多处知忙认真洗扫父母爸全关写完家看着'
++'画笑兴会女妈奶午合放收太气早去亮和语千'
++'李秀香听唱连远定厂以后更总主意先干赶起'
++'明净同工专才级队前空房网诗林有棵树在玩'
++'被站动阳光是色吗地哪眼谁没过我但叶时候'
++'海洋球只相哥弟爱很他吃得河样活从如发鲜'
++'满怎就可该对现要坏老师学校这背向直北极'
++'睛都闪带分给当到爬星打往讲故像胡么跟叫'
++'男最点肉菜来什名字告诉把成经常夏街冰床'
++'帽觉糕买非它包跑想身哭许';
+const CHARS=[...new Set(RAW)];
+document.getElementById('cnt').textContent=CHARS.length+' 字';
+
+// speech (tap the big character to pronounce)
+let zhVoice=null;
+function pickVoice(){ const vs=speechSynthesis.getVoices().filter(v=>/zh|Chinese|中文/i.test(v.lang+'|'+v.name)); zhVoice=vs[0]||null; }
+if(typeof speechSynthesis!=='undefined'){ pickVoice(); speechSynthesis.onvoiceschanged=pickVoice; }
+function speak(t){ try{ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(t); u.lang='zh-CN'; u.rate=.7; if(zhVoice)u.voice=zhVoice; speechSynthesis.speak(u); }catch(e){} }
+
+// stroke data: hanzi-writer-data (MIT) via jsDelivr, fetched lazily per visible row
+const CDN='https://cdn.jsdelivr.net/npm/hanzi-writer-data@2.0.1/';
+function stepSvg(strokes,k){
+  const NS='http://www.w3.org/2000/svg';
+  const svg=document.createElementNS(NS,'svg'); svg.setAttribute('viewBox','0 0 1024 1024');
+  const g=document.createElementNS(NS,'g'); g.setAttribute('transform','scale(1, -1) translate(0, -900)');
+  for(let i=0;i<=k;i++){ const p=document.createElementNS(NS,'path'); p.setAttribute('d',strokes[i]); p.setAttribute('class',i===k?'cur':'done'); g.appendChild(p); }
+  svg.appendChild(g); return svg;
+}
+async function fillRow(row){
+  const c=row.dataset.c, box=row.querySelector('.steps');
+  try{
+    const r=await fetch(CDN+encodeURIComponent(c)+'.json');
+    if(!r.ok) throw 0;
+    const d=await r.json();
+    box.innerHTML='';
+    d.strokes.forEach((_,k)=>box.appendChild(stepSvg(d.strokes,k)));
+  }catch(e){ box.innerHTML='<span class="miss">笔顺数据缺失</span>'; }
+}
+const io=new IntersectionObserver(es=>{
+  es.forEach(e=>{ if(e.isIntersecting){ io.unobserve(e.target); fillRow(e.target); } });
+},{rootMargin:'600px'});
+
+const list=document.getElementById('list');
+CHARS.forEach((c,i)=>{
+  const row=document.createElement('div'); row.className='row'; row.dataset.c=c;
+  row.innerHTML='<div class="num">'+(i+1)+'</div><div class="big">'+c+'</div><div class="steps">…</div>';
+  row.querySelector('.big').onclick=()=>speak(c);
+  list.appendChild(row); io.observe(row);
+});
+</script>
+</body>
+</html>
